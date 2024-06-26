@@ -9,9 +9,13 @@
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 #include <openssl/buffer.h> // Needed for BIO_mem functions
+#include <openssl/param_build.h>
 
 // download file from URL
 #include <curl/curl.h>
+
+// base64 encoding
+#include <cppcodec/base64_default_url_unpadded.hpp>
 
 // JSON parsing
 #include <nlohmann/json.hpp>
@@ -21,10 +25,12 @@
  * 0 = Show warning
  */
 #define SUPPRESS_WARNING 0
+//const std::string jwksURL = "https://demo.api.piperks.com/.well-known/pi-xcels.json";
+const std::string jwksURL = "https://raw.githubusercontent.com/AltheimIcarus/Pi-xcels-solution3/main/jwks_rsa_public_key.json";
 
 /** Compile cmdlet
  * 
- * g++ -o hasher hasher.cpp -lcurl -lssl -lcrypto -I/usr/include/nlohmann
+ * g++ -o hasher hasher.cpp -lcurl -lssl -lcrypto -I/usr/include/cppcodec -I/usr/include/nlohmann
  */
 
 using json = nlohmann::json;
@@ -81,38 +87,8 @@ std::string downloadJWKS(const std::string& url) {
     return jsonData;
 }
 
-// Function to base64 decode a string and return as std::string
-std::string base64_decode(const std::string& encoded_string) {
-    // Initialize BIO objects for base64 URL-safe decoding
-    BIO *bio, *b64, *bio_out;
-    bio = BIO_new(BIO_s_mem());
-    b64 = BIO_new(BIO_f_base64_url());
-    bio_out = BIO_new(BIO_s_mem());
-
-    // Chain bio and b64 for decoding
-    bio = BIO_push(b64, bio);
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // Disable newline encoding
-
-    // Write encoded string to BIO
-    BIO_write(bio, encoded_string.c_str(), encoded_string.length());
-
-    // Perform base64 URL-safe decoding
-    BIO_flush(bio);
-    BIO_read(bio_out, bio, BIO_pending(bio));
-
-    // Read decoded data from BIO
-    char* buffer;
-    long length = BIO_get_mem_data(bio_out, &buffer);
-    std::string decoded_string(buffer, length);
-
-    // Clean up BIO objects
-    BIO_free_all(bio_out);
-
-    return decoded_string;
-}
-
 // Function to parse JWKS and extract RSA public key
-RSA* jwksToRSAPublicKey(const std::string& jwks) {
+EVP_PKEY* jwksToRSAPublicKey(const std::string& jwks) {
     json jwksJson = json::parse(jwks);
 
     // Find the key with matching keyId
@@ -121,19 +97,41 @@ RSA* jwksToRSAPublicKey(const std::string& jwks) {
             std::string n = key["n"];
             std::string e = key["e"];
             std::cout << "n: " << n << "\ne: " << e << std::endl;
-            std::string n64 = base64_decode(n);
-            std::string e64 = base64_decode(e);
-            std::cout << "n64: " << n64 << "\ne64: " << e64 << std::endl;
+            std::vector<unsigned char> nBin = cppcodec::base64_url_unpadded::decode(n);
+            std::vector<unsigned char> eBin = cppcodec::base64_url_unpadded::decode(e);
 
-
-            RSA* rsa = RSA_new();
             BIGNUM* bignumN = BN_new();
             BIGNUM* bignumE = BN_new();
 
             // Set RSA parameters
-            BN_bin2bn((const unsigned char*)n64.c_str(), n64.length(), bignumN);
-            BN_bin2bn((const unsigned char*)e64.c_str(), e64.length(), bignumE);
-            RSA_set0_key(rsa, bignumN, bignumE, NULL);
+            BN_bin2bn(nBin.data(), n.size(), bignumN);
+            BN_bin2bn(eBin.data(), e.size(), bignumE);
+
+            // Build params to create PARAM array
+            OSSL_PARAM_BLD* params_build = OSSL_PARAM_BLD_new();
+
+            OSSL_PARAM_BLD_push_BN(params_build, "n", bignumN);
+            OSSL_PARAM_BLD_push_BN(params_build, "e", bignumE);
+            OSSL_PARAM_BLD_push_BN(params_build, "d", nullptr);
+            
+            // create parameters
+            OSSL_PARAM* params = OSSL_PARAM_BLD_to_param(params_build);
+
+            // free memory
+            OSSL_PARAM_BLD_free(params_build);
+            BN_free(bignumN);
+            BN_free(bignumE);
+            
+            // create RSA key
+            EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_from_name(nullptr, "RSA", nullptr);
+            EVP_PKEY_fromdata_init(ctx);
+            EVP_PKEY *rsa = nullptr;
+            
+            EVP_PKEY_fromdata(ctx, &rsa, EVP_PKEY_KEYPAIR, params);
+
+            // free memory
+            OSSL_PARAM_free(params);
+            EVP_PKEY_CTX_free(ctx);
 
             return rsa;
         }
@@ -151,19 +149,25 @@ RSA* jwksToRSAPublicKey(const std::string& jwks) {
     return nullptr;
 }
 
-std::string encryptWithPublicKey(const std::string& data, RSA* rsa) {
+std::string encryptWithPublicKey(const std::string& data, EVP_PKEY* rsa) {
     // Determine the RSA key size
-    int keySize = RSA_size(rsa);
+    int keySize = (EVP_PKEY_get_bits(rsa) + 7) / 8;
     std::cout << "RSA_len: " << keySize << std::endl;
 
     // Allocate memory for the encrypted data
     unsigned char* encrypted = (unsigned char*)malloc(keySize);
 
-    // Perform encryption
-    int encryptSize = RSA_public_encrypt(data.length(), reinterpret_cast<const unsigned char*>(data.c_str()),
-                                         encrypted, rsa, RSA_PKCS1_PADDING);
+    // initialize encryption
+    EVP_PKEY_CTX* enc_ctx = EVP_PKEY_CTX_new(rsa, nullptr);
+    EVP_PKEY_encrypt_init(enc_ctx);
+    EVP_PKEY_CTX_set_rsa_padding(enc_ctx, RSA_NO_PADDING);
 
-    if (encryptSize == -1) {
+    // Perform encryption
+    size_t encryptSize = keySize;
+    int result = EVP_PKEY_encrypt(enc_ctx, encrypted, &encryptSize, reinterpret_cast<const unsigned char*>(data.c_str()),
+                                         keySize);
+
+    if (result != 1 || encryptSize != keySize) {
 #if SUPPRESS_WARNING==0
         std::cerr << "Encryption failed: " << ERR_error_string(ERR_get_error(), nullptr) << std::endl;
 #endif
@@ -173,6 +177,9 @@ std::string encryptWithPublicKey(const std::string& data, RSA* rsa) {
     // Resize the encrypted string to the actual size
     std::string encryptedDataStr(reinterpret_cast<char*>(encrypted), encryptSize);
     free(encrypted);
+
+    // Free memory
+    EVP_PKEY_CTX_free(enc_ctx);
 
     return encryptedDataStr;
 }
@@ -188,21 +195,21 @@ int main() {
     
 
     // 3. Download the public key using cURL
-    std::string publicKeyJWKS = downloadJWKS("https://demo.api.piperks.com/.well-known/pi-xcels.json");
+    std::string publicKeyJWKS = downloadJWKS(jwksURL);
     if (publicKeyJWKS.empty())
         return 0;
     std::cout << "PK: " << publicKeyJWKS << std::endl;
 
 
     // 4. Encrypt the hash using OpenSSL - RSA
-    RSA *rsaPublicKey = jwksToRSAPublicKey(publicKeyJWKS);
+    EVP_PKEY* rsaPublicKey = jwksToRSAPublicKey(publicKeyJWKS);
     std::string encryptedHash = encryptWithPublicKey(hashedStr, rsaPublicKey);
 
     // 5. Return the hash
     std::cout << "encrypted: " << encryptedHash << std::endl;
 
     // free memory
-    RSA_free(rsaPublicKey);
+    EVP_PKEY_free(rsaPublicKey);
 
     return 0;
 }

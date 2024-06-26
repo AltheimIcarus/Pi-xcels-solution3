@@ -1,3 +1,7 @@
+/**
+ * C++ codes to generate a public key in JWKS json without header.
+ */
+
 #include <iostream>
 
 // For file operations
@@ -18,11 +22,16 @@
 
 /** Compile cmdlet
  * 
- * g++ -o genPubKey genPubKey.cpp -lssl -lcrypto -lcppcodec -I/usr/include/nlohmann
+ * g++ -o genPubKey genPubKey.cpp -lssl -lcrypto -I/usr/include/cppcodec -I/usr/include/nlohmann
  */
 
 using json = nlohmann::json;
 
+/**
+ * Generates a RSA public key in JWKS json.
+ * @param rsa RSA handler of OpenSSL.
+ * @return JWKS json
+ */
 json generateJWKS_RSAPublicKey(RSA *rsa) {
     // Create a JSON object for the RSA public key in JWKS format
     json jwks;

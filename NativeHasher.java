@@ -6,13 +6,30 @@ import java.nio.charset.StandardCharsets;   // utf-8 encoding
  * javah -jni NativeHasher
  * java NativeHasher
  */
+
+/** Main container of the solution 3.
+ * It does the following:
+ * (1) get input text from user.
+ * (2) Hash the input string.
+ * (3) Download the public key using cURL.
+ * (4) Encrypt the hash using OpenSSL - RSA.
+ * (5) Return the hash.
+ * 
+ * @author ChiQin Cheng
+ * @version 1.0
+ * @since 1.0
+ */
 public class NativeHasher {
     // load the native c++ library
     static {
         System.load("/home/roan/Desktop/solution3/libnativeHasher.so");
     }
 
-    // method to invoke native c++ function
+    /**
+     * Method to invoke native c++ function
+     * @param input Text to be hashed and encrypt
+     * @return encrypted string
+     */
     public native String encryptStringNative(String input);
 
     public static void main(String[] args) {
@@ -31,7 +48,8 @@ public class NativeHasher {
             );
 
             // 5. return the ecrypted hash
-            System.out.println("Enter a text: " + encryptedStr);
+            System.out.println("Encrypted text: ");
+            System.out.println(encryptedStr);
             
             scanner.close();
         } catch (Exception e) {
