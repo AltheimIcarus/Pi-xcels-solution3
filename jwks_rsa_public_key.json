@@ -1,5 +1,9 @@
 {
-    "e": "AQA",
-    "kty": "RSA",
-    "n": "r1D7ZCs6VZ7Mxq13sUCaYUWDRb/WMFNJ0bGMH1gNnDXd85tX1fa8OBIh9NrH8I99V4RIB7e3qOrkru2N2gjoTVEMdUTdARFUrpCldAzt79+kXO8vdNiV4yZaAOg7R0U51j0mNOtPBaCEOJm0Nf5earbc+G0RxQconxFv/r1oyCQXdCWJJNuhsL7ch2rZ3XNqC8sH9zksB1cGXQ8txEnVuNA+4KIWZwX400IyOV0v3ZfBRIXp+GVglLrDsccdifptQtu3s+Jlwujlva/uYVDHNeKXiuPheffe/kuaHNKqDadIzY3qARcXxlgNC84GGYb64KJulmZgeRlL51bu3XXdxw="
+    "keys": [
+        {
+            "kty": "RSA",
+            "e": "AQA",
+            "n": "r1D7ZCs6VZ7Mxq13sUCaYUWDRb/WMFNJ0bGMH1gNnDXd85tX1fa8OBIh9NrH8I99V4RIB7e3qOrkru2N2gjoTVEMdUTdARFUrpCldAzt79+kXO8vdNiV4yZaAOg7R0U51j0mNOtPBaCEOJm0Nf5earbc+G0RxQconxFv/r1oyCQXdCWJJNuhsL7ch2rZ3XNqC8sH9zksB1cGXQ8txEnVuNA+4KIWZwX400IyOV0v3ZfBRIXp+GVglLrDsccdifptQtu3s+Jlwujlva/uYVDHNeKXiuPheffe/kuaHNKqDadIzY3qARcXxlgNC84GGYb64KJulmZgeRlL51bu3XXdxw="
+        }
+    ]
 }
