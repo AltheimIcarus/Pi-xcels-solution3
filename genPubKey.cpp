@@ -13,26 +13,15 @@
 // JSON parsing
 #include <nlohmann/json.hpp>
 
+// base64 encoding
+#include <cppcodec/base64_default_url_unpadded.hpp>
+
 /** Compile cmdlet
  * 
- * g++ -o genPubKey genPubKey.cpp -lssl -lcrypto -I/usr/include/nlohmann
+ * g++ -o genPubKey genPubKey.cpp -lssl -lcrypto -lcppcodec -I/usr/include/nlohmann
  */
 
 using json = nlohmann::json;
-
-std::string base64_encode(const unsigned char *input, int length) {
-    BIO *b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    BIO *mem = BIO_new(BIO_s_mem());
-    BIO_push(b64, mem);
-    BIO_write(b64, input, length);
-    BIO_flush(b64);
-    BUF_MEM *bptr;
-    BIO_get_mem_ptr(b64, &bptr);
-    std::string result(bptr->data, bptr->length - 1);  // Exclude newline
-    BIO_free_all(b64);
-    return result;
-}
 
 json generateJWKS_RSAPublicKey(RSA *rsa) {
     // Create a JSON object for the RSA public key in JWKS format
@@ -47,14 +36,14 @@ json generateJWKS_RSAPublicKey(RSA *rsa) {
     int modulusLen = BN_num_bytes(n);
     unsigned char *modulusBin = (unsigned char *)malloc(modulusLen);
     BN_bn2bin(n, modulusBin);
-    std::string modulusBase64Url = base64_encode(modulusBin, modulusLen);
+    std::string modulusBase64Url = cppcodec::base64_url_unpadded::encode(modulusBin, modulusLen);
     jwks["n"] = modulusBase64Url;
     
     // Convert exponent to base64url format
     int exponentLen = BN_num_bytes(e);
     unsigned char *exponentBin = (unsigned char *)malloc(exponentLen);
     BN_bn2bin(e, exponentBin);
-    std::string exponentBase64Url = base64_encode(exponentBin, exponentLen);
+    std::string exponentBase64Url = cppcodec::base64_url_unpadded::encode(exponentBin, exponentLen);
     jwks["e"] = exponentBase64Url;
     
     // Cleanup
