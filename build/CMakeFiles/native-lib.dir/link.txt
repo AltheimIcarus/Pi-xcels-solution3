@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -fPIC -shared -Wl,-soname,libnative-lib.so -o libnative-lib.so CMakeFiles/native-lib.dir/NativeHasher.cpp.o  -lCURL::libcurl -lOpenSSL::SSL -lOpenSSL::Crypto 
