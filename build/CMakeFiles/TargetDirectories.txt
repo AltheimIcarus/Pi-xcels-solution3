@@ -1,5 +1,0 @@
-/home/roan/Desktop/solution3/build/CMakeFiles/native-lib.dir
-/home/roan/Desktop/solution3/build/CMakeFiles/edit_cache.dir
-/home/roan/Desktop/solution3/build/CMakeFiles/rebuild_cache.dir
-/home/roan/Desktop/solution3/build/_deps/json-build/CMakeFiles/edit_cache.dir
-/home/roan/Desktop/solution3/build/_deps/json-build/CMakeFiles/rebuild_cache.dir
