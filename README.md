@@ -62,8 +62,13 @@ If any error occurs when linking the cppcodec library, change the linker flag to
   g++ -shared -fPIC -o libnativeHasher.so NativeHasher.cpp -I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux -lcurl -lssl -lcrypto -lcppcodec -I/usr/include/nlohmann
 ```
 
-5. Run the main java program in bash:
+5. Run the main java program in bash or compile the jar package:
 
 ```bash
+  # Run the java file
   java NativeHasher
+  # OR compile the jar package
+  jar cmvf MANIFEST.MF NativeHasher.jar NativeHasher.class
+  # then run with the command
+  java -jar NativeHasher.jar
 ```
